@@ -1,0 +1,125 @@
+package com.example.videostorage;
+
+import static androidx.constraintlayout.helper.widget.MotionEffect.TAG;
+
+import androidx.appcompat.app.AppCompatActivity;
+import androidx.recyclerview.widget.RecyclerView;
+import androidx.viewpager2.widget.ViewPager2;
+
+import android.net.Uri;
+import android.os.Bundle;
+import android.util.Log;
+import android.util.LogPrinter;
+import android.webkit.DownloadListener;
+
+import com.amazonaws.mobileconnectors.s3.transferutility.TransferListener;
+import com.amazonaws.mobileconnectors.s3.transferutility.TransferObserver;
+import com.amazonaws.mobileconnectors.s3.transferutility.TransferState;
+import com.amazonaws.regions.Regions;
+import com.amazonaws.services.s3.AmazonS3Client;
+
+import java.io.File;
+import java.io.Serializable;
+import java.util.ArrayList;
+import java.util.HashMap;
+import java.util.List;
+
+public class MainActivity extends AppCompatActivity {
+
+    private ViewPager2 viewPager2;
+    private List<ShortsData> shortsDataList;
+    private ShortsAdapter shortsAdapter;
+
+
+    @Override
+    protected void onCreate(Bundle savedInstanceState) {
+        super.onCreate(savedInstanceState);
+        setContentView(R.layout.activity_main);
+
+        shortsDataList = new ArrayList<>();
+        viewPager2 = findViewById(R.id.viewPager2);
+
+        shortsDataList.add(new ShortsData("android.resource://" + getPackageName() + "/" + R.raw.toyou));
+
+        S3Helper s3Helper = new S3Helper(this);
+        File videoFile = new File(getCacheDir(), "downloaded_video.mp4"); // 영상을 저장할 임시 파일
+        Log.d("VideoDownload", "File path: " + videoFile.getAbsolutePath());
+
+        s3Helper.downloadFile("videos-platform-bucket", "/KakaoTalk_20240909_203246741.mp4", videoFile, new TransferListener() {
+            @Override
+            public void onStateChanged(int id, TransferState state) {
+                if (state == TransferState.COMPLETED) { // 다운로드 완료 후 비디오 재생
+                    if (videoFile.exists()) {
+                        // 파일이 성공적으로 다운로드됨
+                        Log.d("VideoDownload", "File downloaded: " + videoFile.getAbsolutePath());
+                    } else {
+                        Log.d("VideoDownload", "File download failed: " + videoFile.getAbsolutePath());
+                    }
+                }
+            }
+
+            @Override
+            public void onProgressChanged(int id, long bytesCurrent, long bytesTotal) {
+                // 진행 상황 업데이트
+            }
+
+            @Override
+            public void onError(int id, Exception ex) {
+                ex.printStackTrace();
+                Log.e("VideoDownload", "Error downloading file", ex);
+            }
+        });
+
+        shortsDataList.add(new ShortsData(videoFile.getPath()));
+
+        shortsAdapter = new ShortsAdapter(shortsDataList);
+        viewPager2.setAdapter(shortsAdapter);
+
+
+
+        viewPager2.registerOnPageChangeCallback(new ViewPager2.OnPageChangeCallback() {
+            @Override
+            public void onPageSelected(int position) {
+                super.onPageSelected(position);
+
+                // ViewPager2의 RecyclerView를 얻어옴
+                RecyclerView recyclerView = (RecyclerView) viewPager2.getChildAt(0);
+
+                // 현재 페이지에서 비디오 자동 재생
+                RecyclerView.ViewHolder viewHolder = recyclerView.findViewHolderForAdapterPosition(position);
+                if (viewHolder instanceof ShortsAdapter.ShortsViewHolder) {
+                    ShortsAdapter.ShortsViewHolder shortsViewHolder = (ShortsAdapter.ShortsViewHolder) viewHolder;
+                    shortsViewHolder.videoView.start();  // 비디오 자동 재생
+                }
+            }
+
+            @Override
+            public void onPageScrollStateChanged(int state) {
+                if (state == ViewPager2.SCROLL_STATE_IDLE) {
+                    int previousPosition = viewPager2.getCurrentItem() - 1;
+                    int nextPosition = viewPager2.getCurrentItem() + 1;
+
+                    RecyclerView recyclerView = (RecyclerView) viewPager2.getChildAt(0);
+
+                    // 이전 비디오 멈춤
+                    RecyclerView.ViewHolder previousViewHolder = recyclerView.findViewHolderForAdapterPosition(previousPosition);
+                    if (previousViewHolder instanceof ShortsAdapter.ShortsViewHolder) {
+                        ShortsAdapter.ShortsViewHolder previousVideoViewHolder = (ShortsAdapter.ShortsViewHolder) previousViewHolder;
+                        previousVideoViewHolder.videoView.pause();
+                    }
+
+                    // 다음 비디오 멈춤
+                    RecyclerView.ViewHolder nextViewHolder = recyclerView.findViewHolderForAdapterPosition(nextPosition);
+                    if (nextViewHolder instanceof ShortsAdapter.ShortsViewHolder) {
+                        ShortsAdapter.ShortsViewHolder nextVideoViewHolder = (ShortsAdapter.ShortsViewHolder) nextViewHolder;
+                        nextVideoViewHolder.videoView.pause();
+                    }
+                }
+            }
+        });
+
+
+    }
+
+
+}

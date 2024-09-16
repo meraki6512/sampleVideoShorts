@@ -1,0 +1,13 @@
+package com.example.videostorage;
+
+public class ShortsData {
+    private String shortsPath;
+
+    public String getShortsPath() {
+        return shortsPath;
+    }
+
+    public ShortsData(String shortsPath) {
+        this.shortsPath = shortsPath;
+    }
+}

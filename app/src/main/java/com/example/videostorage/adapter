@@ -1,0 +1,79 @@
+package com.example.videostorage;
+
+import android.media.MediaPlayer;
+import android.view.LayoutInflater;
+import android.view.View;
+import android.view.ViewGroup;
+import android.widget.ImageView;
+import android.widget.TextView;
+import android.widget.VideoView;
+
+import androidx.annotation.NonNull;
+import androidx.recyclerview.widget.RecyclerView;
+
+import java.util.List;
+
+public class ShortsAdapter extends RecyclerView.Adapter<ShortsAdapter.ShortsViewHolder> {
+
+    List<ShortsData> shortsDataList;
+
+    public ShortsAdapter(List<ShortsData> shortsDataList) {
+        this.shortsDataList = shortsDataList;
+    }
+
+    @NonNull
+    @Override
+    public ShortsViewHolder onCreateViewHolder(@NonNull ViewGroup parent, int viewType) {
+        View view = LayoutInflater.from(parent.getContext()).inflate(R.layout.item_shorts, parent, false);
+        return new ShortsViewHolder(view);
+    }
+
+    @Override
+    public void onBindViewHolder(@NonNull ShortsViewHolder holder, int position) {
+        holder.setShortsData(shortsDataList.get(position));
+    }
+
+    @Override
+    public int getItemCount() {
+        return shortsDataList.size();
+    }
+
+    public class ShortsViewHolder extends RecyclerView.ViewHolder{
+        VideoView videoView;
+
+        public ShortsViewHolder(@NonNull View itemView) {
+            super(itemView);
+
+            videoView = itemView.findViewById(R.id.videoView);
+
+        }
+
+        public void setShortsData(ShortsData shortsData){
+
+            videoView.setVideoPath(shortsData.getShortsPath());
+
+            videoView.setOnPreparedListener(new MediaPlayer.OnPreparedListener() {
+                @Override
+                public void onPrepared(MediaPlayer mp) {
+                    mp.start();
+                    float videoRatio = mp.getVideoWidth() / (float) mp.getVideoHeight();
+                    float screenRatio = videoView.getWidth() / (float) videoView.getHeight();
+
+                    float scale = videoRatio / screenRatio;
+                    if (scale >= 1f){
+                        videoView.setScaleX(scale);
+                    } else{
+                        videoView.setScaleY(1f/scale);
+                    }
+                }
+            });
+
+            videoView.setOnCompletionListener(new MediaPlayer.OnCompletionListener() {
+                @Override
+                public void onCompletion(MediaPlayer mp) {
+                    mp.start();
+                }
+            });
+        }
+    }
+}

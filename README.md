@@ -1,4 +1,6 @@
-local.properties setting
+Edit local.properties setting
+
+...
 - AWSKey = ""
 - AWSSecretKey = ""
 - AWSBucketName = ""
